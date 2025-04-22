@@ -792,12 +792,23 @@ class VtValue
     template <class T>
     static TfPointerAndBits<const _TypeInfo> GetTypeInfo() {
         typedef typename _TypeInfoFor<T>::Type TI;
+
+        // Wrap the TI in a struct with a non-constexpr user-declared
+        // constructor, ensuring that the static variable consistently uses
+        // dynamic initialization
+        struct TIWrapper
+        {
+            TIWrapper() {}
+            TI ti;
+        };
+        static const TIWrapper tiw;
+
         static const TI ti;
         static constexpr unsigned int flags =
                        (TI::IsLocal ? _LocalFlag : 0) |
                        (TI::HasTrivialCopy ? _TrivialCopyFlag : 0) |
                        (TI::IsProxy ? _ProxyFlag : 0);
-        return TfPointerAndBits<const _TypeInfo>(&ti, flags);
+        return TfPointerAndBits<const _TypeInfo>(&tiw.ti, flags);
     }
 
     // A helper that moves a held value to temporary storage, but keeps it alive
